@@ -1,6 +1,6 @@
-import React, { ContextType, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, UserDetails } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export const Register: React.FC = () => {
   const [username, setUsername] = useState("");

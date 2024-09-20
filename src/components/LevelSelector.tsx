@@ -8,6 +8,8 @@ function LevelSelector({
   onchange: React.Dispatch<SetStateAction<number>>;
   level: number;
 }) {
+  const user = sessionStorage.getItem(`user`);
+  const savedLevel = localStorage.getItem(`${user}:level`);
   return (
     <div className="relative inline-block w-48">
       <select
@@ -15,9 +17,9 @@ function LevelSelector({
         onChange={(e) => onchange(Number(e.target.value))}
         className="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded-lg shadow leading-tight focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
       >
-        {[1, 2, 3, 4, 5].map((value) => (
-          <option key={value} value={value}>
-            Level {value}
+        {Array.from({ length: Number(savedLevel) }).map((_, index) => (
+          <option key={index} value={index + 1}>
+            Level {index + 1}
           </option>
         ))}
       </select>

@@ -9,9 +9,10 @@ interface PuzzlePiece {
 }
 
 const Home: React.FC = () => {
-  const localLevel = localStorage.getItem("level")
-    ? JSON.parse(localStorage.getItem("level") as string)
-    : 2;
+  const user = sessionStorage.getItem("user");
+  const localLevel = localStorage.getItem(`${user}:level`)
+    ? JSON.parse(localStorage.getItem(`${user}:level`) as string)
+    : 1;
   const [level, setLevel] = useState<number>(Number(localLevel));
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [gridSize, setGridSize] = useState<number>(3);
@@ -67,13 +68,17 @@ const Home: React.FC = () => {
     const completed: boolean = pieces.every(
       (tile, index) => tile.currectPosition === index
     );
+
     if (completed) {
       setWin(true);
       setGameOver(true);
 
       setTimeout(() => {
         setLevel((prev) => prev + 1);
-      }, 1000);
+        if (localLevel <= level) {
+          localStorage.setItem(`${user}:level`, `${level + 1}`);
+        }
+      }, 3000);
     }
   };
 
@@ -136,17 +141,39 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5 items-center justify-center">
-      <diwv className=" flex flex-col items-center">
-        <span>Select dificulity</span>
-        <LevelSelector level={level} onchange={setLevel} />
-      </diwv>
-      <div className="text-xl text-white font-bold">
-        Time Left:{" "}
-        <span className={`${timeLeft < 10 ? "text-red-600" : ""}`}>
-          {formatTime(timeLeft)}
-        </span>
-        | Incorrect Moves: {incorrectMoves}/6
+    <div className="flex gap-5 items-start justify-center">
+      <div className=" flex flex-col gap-3 items-stretch">
+        <div className=" flex flex-col items-center gap-5">
+          <span className=" text-3xl text-white">Dificulity Level</span>
+          <LevelSelector level={level} onchange={setLevel} />
+        </div>
+        <div className="text-xl text-white font-bold">
+          Time Left:{" "}
+          <span className={`${timeLeft < 10 ? "text-red-600" : ""}`}>
+            {formatTime(timeLeft)}
+          </span>
+          | Incorrect Moves: {incorrectMoves}/6
+        </div>
+        <div className=" flex flex-col gap-3">
+          {win && (
+            <span className="text-xl text-green-500 font-semibold">
+              Level Completed. <br></br> Next level starting...
+            </span>
+          )}
+          {gameOver && !win && (
+            <span className="text-3xl text-red-500 font-semibold">
+              Game Over
+            </span>
+          )}
+          {gameOver && !win && (
+            <button
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              onClick={initiallizeGame}
+            >
+              Play Again
+            </button>
+          )}
+        </div>
       </div>
       <div
         style={{ gridTemplateColumns: `repeat(${gridSize},minmax(0, 1fr))` }}
@@ -176,22 +203,6 @@ const Home: React.FC = () => {
           </div>
         ))}
       </div>
-      {win && (
-        <span className="text-3xl text-green-500 font-semibold">
-          Level Completed
-        </span>
-      )}
-      {gameOver && !win && (
-        <span className="text-3xl text-red-500 font-semibold">Game Over</span>
-      )}
-      {(win || gameOver) && (
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          onClick={initiallizeGame}
-        >
-          Play Again
-        </button>
-      )}
     </div>
   );
 };

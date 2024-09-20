@@ -3,7 +3,13 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export const RouteProtection: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  return user ? <Outlet /> : <Navigate to="/" />;
+  return loading ? (
+    <div className=" text-xl">Loading...</div>
+  ) : !loading && user ? (
+    <Outlet />
+  ) : (
+    <Navigate to="/" />
+  );
 };
