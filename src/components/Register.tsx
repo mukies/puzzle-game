@@ -22,6 +22,9 @@ export const Register: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className=" flex justify-center items-center">
+        <span className=" text-4xl font-semibold text-white">Login</span>
+      </div>
       <input
         type="text"
         value={username}

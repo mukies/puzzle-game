@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import LevelSelector from "../components/LevelSelector";
 import { formatTime } from "../helper/formatTime";
+import { calculateScore } from "../helper/scoreCalculator";
+import { useAuth } from "../context/AuthContext";
 
 interface PuzzlePiece {
   id: number;
@@ -8,44 +10,127 @@ interface PuzzlePiece {
   currectPosition: number;
 }
 
+interface Score {
+  username: string;
+  rating: string;
+  timeUsed: number;
+  incorrectMoves: number;
+  totalScore: number;
+}
+
 const Home: React.FC = () => {
-  const user = sessionStorage.getItem("user");
-  const localLevel = localStorage.getItem(`${user}:level`)
-    ? JSON.parse(localStorage.getItem(`${user}:level`) as string)
-    : 1;
-  const [level, setLevel] = useState<number>(Number(localLevel));
+  const { user } = useAuth();
+  const [level, setLevel] = useState<number>(Number(1));
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [gridSize, setGridSize] = useState<number>(3);
   const [dragItem, setDragItem] = useState<PuzzlePiece | null>(null);
   const [win, setWin] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(60); // 60 seconds timer
+  const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes
   const [incorrectMoves, setIncorrectMoves] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
+  const [score, setScore] = useState<Score | null>(null);
+  const [initialTime] = useState<number>(300); // 5 minutes
+  const [allLevelsCompleted, setAllLevelsCompleted] = useState<boolean>(false);
+  const [otherScores, setOtherScores] = useState<Score[]>([]);
+  const [userBestScore, setUserBestScore] = useState<Score | null>(null);
 
-  const initiallizeGame = useCallback(() => {
-    // setLevel(localLevel);
+  const initiallizeGame = useCallback(
+    (gameMode: string) => {
+      const shuffledTiles: PuzzlePiece[] = Array.from(
+        { length: gridSize * gridSize },
+        (_, i) => ({
+          value: `/level${level}/${i + 1}.jpg`,
+          currectPosition: i,
+          id: Math.floor(Math.random() * 900000),
+        })
+      ).sort(() => Math.random() - 0.5);
+      setPieces(shuffledTiles);
+      setGridSize(
+        level == 1 ? 2 : level == 2 ? 3 : level == 3 ? 4 : level == 4 ? 6 : 9
+      );
 
-    const shuffledTiles: PuzzlePiece[] = Array.from(
-      { length: gridSize * gridSize },
-      (_, i) => ({
-        value: `/level${level}/${i + 1}.jpg`,
-        currectPosition: i,
-        id: Math.floor(Math.random() * 900000),
-      })
-    ).sort(() => Math.random() - 0.5);
-    setPieces(shuffledTiles);
-    setGridSize(
-      level == 1 ? 2 : level == 2 ? 3 : level == 3 ? 4 : level == 4 ? 6 : 9
-    );
-    setTimeLeft(level * 60);
-    setIncorrectMoves(0);
-    setGameOver(false);
-    setWin(false);
-  }, [gridSize, level]);
+      if (gameMode == "restart") {
+        setTimeLeft(300); // Reset to 5 minutes
+        setIncorrectMoves(0);
+        setLevel(1);
+        setAllLevelsCompleted(false);
+      }
+
+      setGameOver(false);
+      setWin(false);
+      setScore(null);
+    },
+    [gridSize, level]
+  );
 
   useEffect(() => {
-    initiallizeGame();
+    initiallizeGame("new");
+    loadOtherScores();
+    loadUserBestScore();
   }, [initiallizeGame]);
+
+  const updateScore = () => {
+    const timeUsed = initialTime - timeLeft;
+    const newScore = calculateScore(
+      timeUsed,
+      incorrectMoves,
+      initialTime,
+      level
+    );
+    const totalScore =
+      newScore.rating === "Excellent"
+        ? 100
+        : newScore.rating === "Good Job"
+        ? 80
+        : newScore.rating === "You Can Do Better"
+        ? 60
+        : 40;
+
+    const updatedScore: Score = {
+      username: user || "Anonymous",
+      ...newScore,
+      totalScore,
+    };
+
+    setScore(updatedScore);
+    saveScore(updatedScore);
+  };
+
+  const saveScore = (newScore: Score) => {
+    const scores: Score[] = JSON.parse(
+      localStorage.getItem("puzzleScores") || "[]"
+    );
+    const userScoreIndex = scores.findIndex(
+      (score) => score.username === newScore.username
+    );
+
+    if (userScoreIndex !== -1) {
+      if (newScore.totalScore > scores[userScoreIndex].totalScore) {
+        scores[userScoreIndex] = newScore;
+      }
+    } else {
+      scores.push(newScore);
+    }
+
+    localStorage.setItem("puzzleScores", JSON.stringify(scores));
+    loadOtherScores();
+    loadUserBestScore();
+  };
+
+  const loadOtherScores = () => {
+    const scores: Score[] = JSON.parse(
+      localStorage.getItem("puzzleScores") || "[]"
+    );
+    setOtherScores(scores.filter((score) => score.username !== user));
+  };
+
+  const loadUserBestScore = () => {
+    const scores: Score[] = JSON.parse(
+      localStorage.getItem("puzzleScores") || "[]"
+    );
+    const userScore = scores.find((score) => score.username === user);
+    setUserBestScore(userScore || null);
+  };
 
   useEffect(() => {
     if (!gameOver && !win) {
@@ -54,6 +139,7 @@ const Home: React.FC = () => {
           if (prevTime <= 1) {
             clearInterval(timer);
             setGameOver(true);
+            updateScore();
             return 0;
           }
           return prevTime - 1;
@@ -71,14 +157,17 @@ const Home: React.FC = () => {
 
     if (completed) {
       setWin(true);
-      setGameOver(true);
+      if (level === 5) {
+        setAllLevelsCompleted(true);
+        setGameOver(true);
+        updateScore();
+      } else {
+        setTimeout(() => {
+          setLevel((prev) => prev + 1);
 
-      setTimeout(() => {
-        setLevel((prev) => prev + 1);
-        if (localLevel <= level) {
-          localStorage.setItem(`${user}:level`, `${level + 1}`);
-        }
-      }, 3000);
+          initiallizeGame("new");
+        }, 3000);
+      }
     }
   };
 
@@ -97,17 +186,15 @@ const Home: React.FC = () => {
 
     if (gameOver) return;
 
-    // Check if the move was incorrect
     const isIncorrect = dragItem?.currectPosition !== index;
 
     if (isIncorrect) {
-      setIncorrectMoves((prev) => {
-        const newIncorrectMoves = prev + 1;
-        if (newIncorrectMoves >= 6) {
-          setGameOver(true);
-        }
-        return newIncorrectMoves;
-      });
+      if (incorrectMoves == 5) {
+        setGameOver(true);
+        updateScore();
+        return;
+      }
+      setIncorrectMoves((prev) => prev + 1);
 
       setTimeLeft((prev) => {
         if (prev <= 10) {
@@ -141,34 +228,47 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="flex gap-5 items-start justify-center">
-      <div className=" flex flex-col gap-3 items-stretch">
-        <div className=" flex flex-col items-center gap-5">
-          <span className=" text-3xl text-white">Dificulity Level</span>
+    <div className="flex flex-col md:flex-row mt-10 md:mt-0 gap-5 items-start justify-center">
+      <div className="flex flex-col gap-3 items-stretch">
+        <div className="flex flex-col items-center gap-5">
+          <span className="text-3xl text-white">Difficulty Level</span>
           <LevelSelector level={level} onchange={setLevel} />
         </div>
         <div className="text-xl text-white font-bold">
           Time Left:{" "}
-          <span className={`${timeLeft < 10 ? "text-red-600" : ""}`}>
+          <span className={`${timeLeft < 60 ? "text-red-600" : ""}`}>
             {formatTime(timeLeft)}
           </span>
           | Incorrect Moves: {incorrectMoves}/6
         </div>
-        <div className=" flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
+          {((gameOver && score) || (allLevelsCompleted && score)) && (
+            <div className="text-xl font-semibold">
+              {allLevelsCompleted && (
+                <p className="text-green-500">All Levels Completed!</p>
+              )}
+              {gameOver && !allLevelsCompleted && (
+                <p className="text-red-500">Game Over</p>
+              )}
+              <p className="text-white">Rating: {score.rating}</p>
+              <p className="text-white">
+                Time Used: {formatTime(score.timeUsed)}
+              </p>
+              <p className="text-white">
+                Incorrect Moves: {score.incorrectMoves}
+              </p>
+              <p className="text-white">Total Score: {score.totalScore}</p>
+            </div>
+          )}
           {win && (
-            <span className="text-xl text-green-500 font-semibold">
-              Level Completed. <br></br> Next level starting...
+            <span className=" text-xl text-green-500">
+              Level completed. Next level starting...
             </span>
           )}
-          {gameOver && !win && (
-            <span className="text-3xl text-red-500 font-semibold">
-              Game Over
-            </span>
-          )}
-          {gameOver && !win && (
+          {(gameOver || allLevelsCompleted) && (
             <button
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              onClick={initiallizeGame}
+              onClick={() => initiallizeGame("restart")}
             >
               Play Again
             </button>
@@ -202,6 +302,28 @@ const Home: React.FC = () => {
             />
           </div>
         ))}
+      </div>
+      <div className="ml-5">
+        <h2 className="text-2xl text-white mb-3">Scores</h2>
+        <div className="bg-purple-500 rounded-lg p-3 max-h-96 overflow-y-auto">
+          {userBestScore && (
+            <div className="mb-4 p-2 bg-purple-400 rounded-md border-2 border-yellow-400">
+              <p className="font-bold text-orange-700">Your Best Score</p>
+              <p>Rating: {userBestScore.rating}</p>
+              <p>Score: {userBestScore.totalScore}</p>
+            </div>
+          )}
+          <h3 className="text-xl text-white mb-2">Other Players</h3>
+          {otherScores.map((score, index) => (
+            <div key={index} className="mb-2 p-2 bg-purple-400 rounded-md">
+              <p className="text-white font-bold">{score.username}</p>
+              {score.username == user && (
+                <p className="text-white">Rating: {score.rating}</p>
+              )}
+              <p className="text-white">Score: {score.totalScore}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

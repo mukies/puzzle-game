@@ -10,6 +10,10 @@ export const Login: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username || !password) {
+      alert("Username and Password is required.");
+      return;
+    }
     if (login(username, password)) {
       navigate("/puzzle");
     } else {
@@ -19,6 +23,9 @@ export const Login: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className=" flex justify-center items-center">
+        <span className=" text-4xl font-semibold text-white">Login</span>
+      </div>
       <input
         type="text"
         value={username}

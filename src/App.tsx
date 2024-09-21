@@ -9,24 +9,19 @@ import { Register } from "./components/Register";
 function App() {
   const { user } = useAuth();
   return (
-    <div className=" min-h-screen flex justify-center items-center bg-purple-900">
-      {user && (
-        <div className=" fixed top-0">
-          {" "}
-          <Navbar username={user} />
-        </div>
-      )}
-      <Routes>
-        <Route path="/" element={<Auth />} />
-        <Route path="/signup" element={<Register />} />
-        <Route element={<RouteProtection />}>
-          <Route path="/puzzle" element={<Home />} />
-        </Route>
-        <Route path="*" element={<Auth />} />
-      </Routes>
-      {/* <Home /> */}
-      {/* <Auth />/ */}
-    </div>
+    <>
+      {user && <Navbar username={user} />}
+      <div className=" min-h-[calc(100vh-80px)] flex justify-center items-center bg-purple-900">
+        <Routes>
+          <Route path="/" element={<Auth />} />
+          <Route path="/signup" element={<Register />} />
+          <Route element={<RouteProtection />}>
+            <Route path="/puzzle" element={<Home />} />
+          </Route>
+          <Route path="*" element={<Auth />} />
+        </Routes>
+      </div>
+    </>
   );
 }
 
