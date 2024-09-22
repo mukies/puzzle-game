@@ -10,6 +10,6 @@ export const RouteProtection: React.FC = () => {
   ) : !loading && user ? (
     <Outlet />
   ) : (
-    <Navigate to="/" />
+    <Navigate to="/login" />
   );
 };

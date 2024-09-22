@@ -1,24 +1,28 @@
 import { Route, Routes } from "react-router-dom";
-import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import { RouteProtection } from "./routeProtection/RouteProtection";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
-import { Register } from "./components/Register";
+import { Register } from "./pages/Register";
+import { Login } from "./pages/Login";
 
 function App() {
   const { user } = useAuth();
   return (
     <>
       {user && <Navbar username={user} />}
-      <div className=" min-h-[calc(100vh-80px)] flex justify-center items-center bg-purple-900">
+      <div
+        className={` ${
+          user ? "min-h-[calc(100vh-80px)]" : "min-h-screen"
+        }  flex justify-center items-center bg-purple-900`}
+      >
         <Routes>
-          <Route path="/" element={<Auth />} />
           <Route path="/signup" element={<Register />} />
+          <Route path="/login" element={<Login />} />
           <Route element={<RouteProtection />}>
-            <Route path="/puzzle" element={<Home />} />
+            <Route path="/" element={<Home />} />
           </Route>
-          <Route path="*" element={<Auth />} />
+          <Route path="*" element={<Login />} />
         </Routes>
       </div>
     </>

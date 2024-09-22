@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { hashPassword } from "../helper/hashPassword";
+import { authSvc } from "../service/authService";
 
 export interface UserDetails {
   user: string | null;
@@ -33,37 +33,14 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const register = (username: string, password: string) => {
-    const isExist = localStorage.getItem(username);
-    if (isExist) {
-      return false;
-    }
-    const payload = {
-      username,
-      password: hashPassword(password),
-    };
-    localStorage.setItem(username, JSON.stringify(payload));
-    return true;
+    const res = authSvc.register(username, password);
+    return res;
   };
 
   const login = (username: string, password: string) => {
-    const isRegistered = localStorage.getItem(username);
-    if (!isRegistered) return false;
-
-    try {
-      const userData = JSON.parse(isRegistered);
-      if (userData.password !== hashPassword(password)) return false;
-
-      const payload = {
-        username,
-        password: hashPassword(password),
-      };
-      sessionStorage.setItem("user", JSON.stringify(payload));
-      setUser(username);
-      return true;
-    } catch (error) {
-      console.error("Error parsing user data during login:", error);
-      return false;
-    }
+    const res = authSvc.login(username, password);
+    setUser(username);
+    return res;
   };
 
   const logout = () => {

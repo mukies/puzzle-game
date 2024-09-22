@@ -10,15 +10,15 @@ export const calculateScore = (
   const avgPercent = (timePercentage + levelPercent) / 2;
   let rating: string;
 
-  if (avgPercent <= 30 && incorrectMoves === 0) {
+  if (avgPercent <= 100 && avgPercent >= 80) {
     rating = "Excellent";
-  } else if (timePercentage <= 50 && incorrectMoves <= 3) {
+  } else if (avgPercent >= 50 && avgPercent < 80) {
     rating = "Good Job";
-  } else if (timePercentage < 100 && incorrectMoves <= 6) {
+  } else if (avgPercent >= 30 && avgPercent < 50) {
     rating = "You Can Do Better";
   } else {
     rating = "Keep Practicing";
   }
 
-  return { rating, timeUsed, incorrectMoves };
+  return { rating, timeUsed, incorrectMoves, avgPercent };
 };
