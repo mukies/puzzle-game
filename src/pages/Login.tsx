@@ -23,8 +23,13 @@ export const Login: React.FC = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className=" flex justify-center items-center">
-        <span className=" text-4xl font-semibold text-white">Login</span>
+      <div className=" flex justify-center items-center flex-col">
+        <h1 className=" text-lg sm:text-3xl font-semibold text-white">
+          Welcome to Image Puzzle Game
+        </h1>
+        <span className=" text-xl sm:text-4xl font-semibold text-white">
+          Login
+        </span>
       </div>
       <input
         type="text"

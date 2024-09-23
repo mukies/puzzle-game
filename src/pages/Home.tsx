@@ -3,30 +3,24 @@ import LevelSelector from "../components/LevelSelector";
 import { formatTime } from "../helper/formatTime";
 import { calculateScore } from "../helper/scoreCalculator";
 import { useAuth } from "../context/AuthContext";
-
-interface PuzzlePiece {
-  id: number;
-  value: string;
-  currectPosition: number;
-}
-
-interface Score {
-  username: string;
-  rating: string;
-  timeUsed: number;
-  incorrectMoves: number;
-  totalScore: number;
-}
+import { PuzzlePiece, Score } from "../types/globalTypes";
 
 const Home: React.FC = () => {
   const { user } = useAuth();
-  const [level, setLevel] = useState<number>(1);
+  const localLevel = JSON.parse(
+    localStorage.getItem(`${user}:levelData`) ??
+      '{"level":1,"incorrectMoves":0}'
+  );
+  const savedTime = JSON.parse(localStorage.getItem(`${user}:time`) ?? "480");
+  const [level, setLevel] = useState<number>(localLevel.level);
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
   const [gridSize, setGridSize] = useState<number>(3);
   const [dragItem, setDragItem] = useState<PuzzlePiece | null>(null);
   const [win, setWin] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(60 * 8);
-  const [incorrectMoves, setIncorrectMoves] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(savedTime);
+  const [incorrectMoves, setIncorrectMoves] = useState<number>(
+    localLevel.incorrectMoves
+  );
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<Score | null>(null);
   const [initialTime] = useState<number>(60 * 8);
@@ -62,6 +56,9 @@ const Home: React.FC = () => {
     },
     [gridSize, level]
   );
+  const saveTime = (time: number) => {
+    localStorage.setItem(`${user}:time`, `${time}`);
+  };
 
   const loadOtherScores = useCallback(() => {
     const scores: Score[] = JSON.parse(
@@ -131,10 +128,12 @@ const Home: React.FC = () => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
             clearInterval(timer);
+            localStorage.removeItem(`${user}:time`);
             setGameOver(true);
             updateScore();
             return 0;
           }
+          saveTime(prevTime - 1);
           return prevTime - 1;
         });
       }, 1000);
@@ -152,12 +151,17 @@ const Home: React.FC = () => {
       setWin(true);
       if (level == 5) {
         setAllLevelsCompleted(true);
+        localStorage.removeItem(`${user}:levelData`);
+        localStorage.removeItem(`${user}:time`);
         setGameOver(true);
         updateScore();
       } else {
         setTimeout(() => {
           setLevel((prev) => prev + 1);
-
+          localStorage.setItem(
+            `${user}:levelData`,
+            `{"level":${level + 1},"incorrectMoves":${incorrectMoves}}`
+          );
           initiallizeGame("new");
         }, 3000);
       }
@@ -182,9 +186,15 @@ const Home: React.FC = () => {
     const isIncorrect = dragItem?.currectPosition !== index;
 
     if (isIncorrect) {
+      localStorage.setItem(
+        `${user}:levelData`,
+        `{"level":${level},"incorrectMoves":${incorrectMoves + 1}}`
+      );
       setIncorrectMoves((prev) => {
-        if (prev == 6) {
+        if (prev >= 6) {
           setGameOver(true);
+          localStorage.removeItem(`${user}:levelData`);
+          localStorage.removeItem(`${user}:time`);
           updateScore();
           return 6;
         }

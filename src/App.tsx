@@ -14,7 +14,7 @@ function App() {
       <div
         className={` ${
           user ? "min-h-[calc(100vh-80px)]" : "min-h-screen"
-        }  flex justify-center items-center bg-purple-900`}
+        }  flex justify-center items-center bg-purple-900 p-4 sm:p-0`}
       >
         <Routes>
           <Route path="/signup" element={<Register />} />
